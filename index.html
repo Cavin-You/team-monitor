@@ -13,6 +13,9 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Claude Team Monitor</title>
+<!-- Firebase SDK (compat 빌드 - 전역 firebase 객체로 사용) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
@@ -447,6 +450,19 @@ input:checked+.sldr:before{transform:translateX(20px)}
             <button class="btn danger-btn" onclick="adminLogout()" style="font-size:12px;padding:6px 12px">로그아웃</button>
           </div>
 
+          <div class="sec-title">클라우드 동기화 (Firebase)</div>
+          <div class="ibox"><strong style="color:var(--tx)">여러 PC·기기에서 같은 데이터를 공유</strong><br>
+            상태가 <span style="color:#1D9E75;font-weight:600">활성</span>이면 모든 변경이 실시간 동기화됩니다.<br>
+            설정 방법은 README의 "Firebase 설정 가이드" 참조 (index.html 상단 FIREBASE_CONFIG 6개 값 교체)
+          </div>
+          <div class="card">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12px;color:var(--tx2)">연동 상태</span>
+              <span class="ejs-st off" id="fb-badge"><i class="ti ti-x" style="font-size:11px"></i> 미연동</span>
+            </div>
+            <div id="fb-info" style="margin-top:8px;font-size:11px;color:var(--tx2)"></div>
+          </div>
+
           <div class="sec-title">EmailJS 이메일 연동</div>
           <div class="ibox"><strong style="color:var(--tx)">무료 200건/월 · 서버 불필요 · 프론트엔드 전용</strong><br>
             <a href="https://www.emailjs.com" target="_blank" style="color:#378ADD">emailjs.com</a> 가입 후 아래 키 입력</div>
@@ -520,6 +536,116 @@ input:checked+.sldr:before{transform:translateX(20px)}
 
 <script>
 // ═══════════════════════════════════════════════════
+//  FIREBASE FIRESTORE 설정
+//  ▼▼▼ 여기 6개 값을 본인 Firebase 프로젝트 값으로 교체하세요 ▼▼▼
+//  (README의 "Firebase 설정 가이드" 참고)
+// ═══════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyB_x0DYA0ltxWGEZmBVus52UnwBE5hBy0w",
+  authDomain:        "claude-team-monitor.firebaseapp.com",
+  projectId:         "claude-team-monitor",
+  storageBucket:     "claude-team-monitor.firebasestorage.app",
+  messagingSenderId: "580355121143",
+  appId:             "1:580355121143:web:cb00b729c077e4b5bf98f2"
+};
+// Firestore 문서 경로 (한 팀이 같은 문서를 공유). 팀이 여럿이면 ID만 분리하세요.
+const FIRESTORE_DOC_PATH = { collection: 'team_monitor', doc: 'teamA' };
+// 다른 팀은 doc: 'teamB' 등으로 분리
+
+// ═══════════════════════════════════════════════════
+//  FIRESTORE SYNC 모듈
+//  - 인터넷 OK   : Firestore에서 로드/저장 + 실시간 구독
+//  - 인터넷 NG   : localStorage 폴백 (오프라인에서도 앱 동작)
+//  - 미설정 상태 : localStorage만 사용 (기존 동작과 동일)
+// ═══════════════════════════════════════════════════
+const fbSync = (function(){
+  let db = null;
+  let docRef = null;
+  let enabled = false;
+  let suppressNextSnapshot = false;   // 본인이 방금 쓴 변경은 다시 적용하지 않기 위한 플래그
+  let onRemoteUpdate = null;          // 다른 PC 변경 수신 시 호출할 콜백
+  let saveTimer = null;               // 디바운스 타이머
+
+  function isConfigured() {
+    return FIREBASE_CONFIG.apiKey && !FIREBASE_CONFIG.apiKey.startsWith('PASTE_');
+  }
+
+  function init() {
+    if(!isConfigured()) {
+      console.info('[Firebase] 설정값이 비어있어 localStorage 단독 모드로 동작합니다.');
+      return false;
+    }
+    if(typeof firebase === 'undefined') {
+      console.warn('[Firebase] SDK 로드 실패 — 오프라인으로 동작합니다.');
+      return false;
+    }
+    try {
+      if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+      docRef = db.collection(FIRESTORE_DOC_PATH.collection).doc(FIRESTORE_DOC_PATH.doc);
+      enabled = true;
+      console.info('[Firebase] 초기화 완료 — 실시간 동기화 활성');
+      return true;
+    } catch(e) {
+      console.error('[Firebase] 초기화 오류:', e);
+      return false;
+    }
+  }
+
+  // 최초 로드: Firestore 우선, 실패/없음이면 localStorage
+  async function load() {
+    if(!enabled) return null;
+    try {
+      const snap = await docRef.get();
+      if(snap.exists) {
+        const data = snap.data();
+        console.info('[Firebase] 클라우드에서 데이터 로드 완료');
+        return data;
+      } else {
+        console.info('[Firebase] 클라우드에 저장된 데이터가 없습니다 (최초 사용).');
+        return null;
+      }
+    } catch(e) {
+      console.warn('[Firebase] 로드 실패 — localStorage 사용:', e.message);
+      return null;
+    }
+  }
+
+  // 저장 (200ms 디바운스 — 빠른 연속 호출은 마지막 1회만 업로드)
+  function save(payload) {
+    if(!enabled) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+      try {
+        suppressNextSnapshot = true;
+        await docRef.set({
+          ...payload,
+          _updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          _updatedBy: (navigator.userAgent || '').slice(0, 80)
+        });
+      } catch(e) {
+        console.warn('[Firebase] 저장 실패:', e.message);
+        suppressNextSnapshot = false;
+      }
+    }, 200);
+  }
+
+  // 실시간 구독 — 다른 PC가 쓰면 onRemoteUpdate(data) 호출
+  function subscribe(callback) {
+    if(!enabled) return;
+    onRemoteUpdate = callback;
+    docRef.onSnapshot(snap => {
+      if(suppressNextSnapshot) { suppressNextSnapshot = false; return; }
+      if(snap.exists && typeof onRemoteUpdate === 'function') {
+        onRemoteUpdate(snap.data());
+      }
+    }, err => console.warn('[Firebase] 구독 오류:', err.message));
+  }
+
+  return { init, load, save, subscribe, isConfigured: () => enabled };
+})();
+
+// ═══════════════════════════════════════════════════
 //  DATA STORE
 // ═══════════════════════════════════════════════════
 const DEFAULT_ACCOUNTS = [
@@ -574,10 +700,18 @@ let sortMode   = 'new';
 let filterMode = 'all';
 
 function persist() {
+  // 1) localStorage — 항상 즉시 저장 (오프라인·캐시 용도)
   localStorage.setItem('ct_accounts', JSON.stringify(accounts));
   localStorage.setItem('ct_history',  JSON.stringify(history));
   localStorage.setItem('ct_cfg',      JSON.stringify(cfg));
   localStorage.setItem('ct_sent',     sentToday);
+  // 2) Firestore — 디바운스되어 PC 간 동기화
+  fbSync.save({
+    accounts:  accounts,
+    history:   history,
+    cfg:       cfg,
+    sentToday: sentToday
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -1025,6 +1159,20 @@ function renderSettings() {
   if(cfg.ejsTemplate) sv('ejs-template',cfg.ejsTemplate);
   if(cfg.ejsPubkey)   sv('ejs-pubkey',cfg.ejsPubkey);
   updateEjsBadge(ejsReady());
+  // Firebase 상태 갱신
+  const fbBadge = document.getElementById('fb-badge');
+  const fbInfo  = document.getElementById('fb-info');
+  if(fbBadge) {
+    if(fbSync.isConfigured()) {
+      fbBadge.className = 'ejs-st on';
+      fbBadge.innerHTML = '<i class="ti ti-check" style="font-size:11px"></i> 활성';
+      if(fbInfo) fbInfo.textContent = `프로젝트: ${FIREBASE_CONFIG.projectId} · 문서: ${FIRESTORE_DOC_PATH.collection}/${FIRESTORE_DOC_PATH.doc}`;
+    } else {
+      fbBadge.className = 'ejs-st off';
+      fbBadge.innerHTML = '<i class="ti ti-x" style="font-size:11px"></i> 미연동';
+      if(fbInfo) fbInfo.textContent = 'index.html 상단의 FIREBASE_CONFIG 값을 입력하면 활성화됩니다.';
+    }
+  }
   // account list
   let html='';
   accounts.forEach(acc=>{
@@ -1117,10 +1265,67 @@ function resetInterval(){
 // ═══════════════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════════════
-initEmailJS();
-renderRoleBadge();
-checkAlerts().then(()=>renderDashboard());
-resetInterval();
+
+// 다른 PC가 데이터를 수정했을 때 호출되는 핸들러
+function applyRemoteData(data, opts) {
+  opts = opts || {};
+  if(data.accounts && Array.isArray(data.accounts)) {
+    accounts = data.accounts;
+    nextId = Math.max(...accounts.map(a=>a.id), 0) + 1;
+  }
+  if(data.history && Array.isArray(data.history)) {
+    history = data.history;
+  }
+  if(typeof data.sentToday === 'number') {
+    sentToday = data.sentToday;
+  }
+  if(data.cfg && typeof data.cfg === 'object') {
+    // 기본값 보완하면서 덮어쓰기
+    cfg = {...DEFAULT_CFG, ...data.cfg};
+  }
+  // localStorage에도 반영 (오프라인 대비 캐시)
+  localStorage.setItem('ct_accounts', JSON.stringify(accounts));
+  localStorage.setItem('ct_history',  JSON.stringify(history));
+  localStorage.setItem('ct_cfg',      JSON.stringify(cfg));
+  localStorage.setItem('ct_sent',     sentToday);
+  // 화면 갱신
+  if(!opts.skipRender) {
+    try {
+      renderDashboard();
+      renderManage();
+      renderHistory();
+      renderSettings();
+    } catch(e) { /* 일부 탭 미초기화일 수 있음 */ }
+    if(opts.toast) showToast('다른 기기의 변경사항이 동기화되었습니다');
+  }
+}
+
+async function bootstrap() {
+  // 1) Firebase 초기화 시도 (설정값이 비어있으면 자동으로 localStorage 단독 모드)
+  const ok = fbSync.init();
+
+  // 2) 클라우드 데이터가 있으면 localStorage 데이터를 덮어씀
+  if(ok) {
+    const remote = await fbSync.load();
+    if(remote) {
+      applyRemoteData(remote, {skipRender: true});
+    } else {
+      // 클라우드에 데이터가 없다 = 최초 사용. 현재 localStorage 데이터를 업로드해 시드.
+      fbSync.save({accounts, history, cfg, sentToday});
+    }
+    // 3) 실시간 구독 — 다른 PC의 변경사항을 즉시 반영
+    fbSync.subscribe(data => applyRemoteData(data, {toast: true}));
+  }
+
+  // 4) 정상적인 앱 시작
+  initEmailJS();
+  renderRoleBadge();
+  await checkAlerts();
+  renderDashboard();
+  resetInterval();
+}
+
+bootstrap();
 </script>
 <script>
 if('serviceWorker' in navigator){
