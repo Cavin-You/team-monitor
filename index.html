@@ -542,10 +542,32 @@ const DEFAULT_ACCOUNTS = [
 
 let accounts  = JSON.parse(localStorage.getItem('ct_accounts') || 'null') || DEFAULT_ACCOUNTS;
 let history   = JSON.parse(localStorage.getItem('ct_history')  || '[]');
-let cfg       = JSON.parse(localStorage.getItem('ct_cfg')      || '{}');
 let sentToday = parseInt(localStorage.getItem('ct_sent')       || '0');
 let isAdmin   = false;   // session-only, not persisted
 let nextId    = Math.max(...accounts.map(a=>a.id), 0) + 1;
+
+// cfg: localStorage 우선, 없으면 기본값(EmailJS 포함)으로 초기화
+const DEFAULT_CFG = {
+  ejsService:  'service_hg9u07f',
+  ejsTemplate: 'template_awbbtbd',
+  ejsPubkey:   'UhAZIK2qfsYKPVNB4',
+  adminEmail:  '',
+  alert3h:     true,
+  alert1h:     true,
+  interval:    3600
+};
+let cfg = JSON.parse(localStorage.getItem('ct_cfg') || 'null');
+if(!cfg) {
+  cfg = {...DEFAULT_CFG};
+  localStorage.setItem('ct_cfg', JSON.stringify(cfg));
+} else {
+  // 기존 저장값에 누락된 기본값 보완 (첫 배포 후 업데이트 대응)
+  let patched = false;
+  Object.keys(DEFAULT_CFG).forEach(k => {
+    if(cfg[k] === undefined) { cfg[k] = DEFAULT_CFG[k]; patched = true; }
+  });
+  if(patched) localStorage.setItem('ct_cfg', JSON.stringify(cfg));
+}
 
 // history UI state
 let sortMode   = 'new';
