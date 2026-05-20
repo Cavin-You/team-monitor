@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Team Monitor">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1c1a" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Claude Team Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.11.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff;--bg2:#f5f5f2;--bg3:#f0ede6;
+  --tx:#1a1a18;--tx2:#6b6b67;
+  --bd:rgba(0,0,0,.12);--bd2:rgba(0,0,0,.25);
+  --rmd:8px;--rlg:12px;
+  --safe:env(safe-area-inset-bottom,0px);
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1c1c1a;--bg2:#252523;--bg3:#2c2c2a;
+  --tx:#f0ede6;--tx2:#9a9a94;
+  --bd:rgba(255,255,255,.10);--bd2:rgba(255,255,255,.22);
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:'Noto Sans KR',-apple-system,'Apple SD Gothic Neo','Segoe UI',Arial,sans-serif;background:var(--bg3);color:var(--tx);-ms-scroll-chaining:none;overscroll-behavior:none}
+
+/* ─ layout ─ */
+.app{max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg3)}
+.hdr{background:var(--bg);border-bottom:.5px solid var(--bd);padding:14px 16px 12px;padding-top:calc(14px + env(safe-area-inset-top,0px));position:sticky;top:0;z-index:100}
+.hdr-row{display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:16px;font-weight:600}
+.hdr-sub{font-size:12px;color:var(--tx2);margin-top:2px}
+.live{display:inline-block;width:7px;height:7px;background:#1D9E75;border-radius:50%;margin-right:5px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+.tabs{display:flex;background:var(--bg);border-bottom:.5px solid var(--bd)}
+.tab{flex:1;padding:10px 4px;font-size:12px;font-weight:500;text-align:center;color:var(--tx2);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:var(--tx);border-bottom-color:var(--tx)}
+.tab.locked{position:relative}
+.tab.locked::after{content:'🔒';font-size:9px;position:absolute;top:4px;right:2px}
+
+.content{flex:1;overflow-y:auto;padding-bottom:calc(80px + var(--safe))}
+.sec{padding:14px 16px}
+.sec-title{font-size:11px;font-weight:600;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+
+/* ─ stat cards ─ */
+.sg{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.sc{background:var(--bg);border:.5px solid var(--bd);border-radius:var(--rmd);padding:12px}
+.sl{font-size:11px;color:var(--tx2);margin-bottom:4px}
+.sv{font-size:22px;font-weight:600}
+.ss{font-size:11px;color:var(--tx2);margin-top:2px}
+
+/* ─ usage card ─ */
+.uc{background:var(--bg);border:.5px solid var(--bd);border-radius:var(--rlg);padding:14px;margin-bottom:10px}
+.uh{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;margin-bottom:14px}
+.ur{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.utl{font-size:11px;font-weight:700;width:58px;flex-shrink:0}
+.ubw{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.ub{height:100%;border-radius:4px;transition:width .5s}
+.ub.std{background:#378ADD}.ub.prm{background:#534AB7}
+.utr{font-size:11px;color:var(--tx2);min-width:74px;text-align:right;white-space:nowrap}
+.udg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;padding-top:12px;border-top:.5px solid var(--bd)}
+.udi{background:var(--bg2);border-radius:var(--rmd);padding:9px}
+.udih{font-size:10px;font-weight:700;margin-bottom:7px}
+.udih.std{color:#0C447C}.udih.prm{color:#3C3489}
+.udr{display:flex;justify-content:space-between;margin-bottom:4px}
+.udr:last-child{margin-bottom:0}
+.udl{font-size:10px;color:var(--tx2)}
+.udv{font-size:10px;font-weight:600}
+
+/* ─ account cards ─ */
+.ac{background:var(--bg);border:.5px solid var(--bd);border-radius:var(--rlg);padding:14px;margin-bottom:10px;transition:border-color .2s,background .2s}
+.ac.warn{border-color:#BA7517;background:#FAEEDA}
+.ac.danger{border-color:#A32D2D;background:#FCEBEB}
+@media(prefers-color-scheme:dark){
+  .ac.warn{background:#2a1f08;border-color:#EF9F27}
+  .ac.danger{background:#2a0808;border-color:#E24B4A}
+}
+.act{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;gap:8px}
+.acn{font-size:14px;font-weight:600}
+.ace{font-size:11px;color:var(--tx2);margin-top:1px}
+.acp{font-size:12px;color:var(--tx2);margin-top:3px}
+.bgs{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.bg{font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.bg-prm{background:#EEEDFE;color:#3C3489}
+.bg-std{background:#E6F1FB;color:#0C447C}
+.bg-warn{background:#FAEEDA;color:#633806}
+.bg-danger{background:#FCEBEB;color:#791F1F}
+.bg-ok{background:#EAF3DE;color:#27500A}
+.bg-admin{background:#EEEDFE;color:#3C3489}
+.pw{height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;margin:8px 0}
+.pb{height:100%;border-radius:3px;transition:width .4s}
+.pb.ok{background:#1D9E75}.pb.warn{background:#EF9F27}.pb.danger{background:#E24B4A}
+.mr{display:flex;align-items:center;justify-content:space-between}
+.ml{font-size:11px;color:var(--tx2)}
+.mv{font-size:12px;font-weight:500}
+.mv.warn{color:#633806}.mv.danger{color:#791F1F}
+
+/* ─ history ─ */
+.hi{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:.5px solid var(--bd)}
+.hd{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.hd.info{background:#378ADD}.hd.warn{background:#EF9F27}
+.hd.danger{background:#E24B4A}.hd.ok{background:#1D9E75}.hd.mail{background:#534AB7}
+.ht{font-size:13px;line-height:1.4}
+.hm{font-size:11px;color:var(--tx2);margin-top:2px}
+.sort-bar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.sort-btn{font-size:11px;padding:5px 10px;border-radius:20px;border:.5px solid var(--bd);background:var(--bg);color:var(--tx2);cursor:pointer;white-space:nowrap}
+.sort-btn.active{background:var(--tx);color:var(--bg);border-color:var(--tx)}
+.filter-btn{font-size:11px;padding:5px 10px;border-radius:20px;border:.5px solid var(--bd);background:var(--bg);color:var(--tx2);cursor:pointer;white-space:nowrap}
+.filter-btn.active{background:#E6F1FB;color:#0C447C;border-color:#85B7EB}
+
+/* ─ settings / forms ─ */
+.card{background:var(--bg);border:.5px solid var(--bd);border-radius:var(--rlg);padding:14px;margin-bottom:12px}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:.5px solid var(--bd);gap:8px}
+.srow:last-child{border-bottom:none}
+.slb{font-size:14px}
+.ssb{font-size:11px;color:var(--tx2);margin-top:2px}
+.inp{font-size:13px;border:.5px solid var(--bd2);border-radius:var(--rmd);padding:7px 10px;background:var(--bg);color:var(--tx);font-family:inherit;width:100%}
+.inp:focus{outline:none;border-color:#378ADD}
+.inp-sm{max-width:180px}
+.btn{background:var(--bg);border:.5px solid var(--bd2);border-radius:var(--rmd);padding:7px 14px;font-size:12px;font-weight:500;color:var(--tx);cursor:pointer;white-space:nowrap;font-family:inherit}
+.btn:active{transform:scale(.96)}
+.btn.pri{background:#0C447C;color:#fff;border-color:#0C447C}
+.btn.sec{background:#534AB7;color:#fff;border-color:#534AB7}
+.btn.danger-btn{background:#A32D2D;color:#fff;border-color:#A32D2D}
+.btn-row{display:flex;gap:8px}
+.toggle{position:relative;display:inline-block;width:44px;height:24px}
+.toggle input{opacity:0;width:0;height:0}
+.sldr{position:absolute;inset:0;background:var(--bd2);border-radius:24px;transition:.3s;cursor:pointer}
+.sldr:before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:white;border-radius:50%;transition:.3s}
+input:checked+.sldr{background:#1D9E75}
+input:checked+.sldr:before{transform:translateX(20px)}
+.ejs-st{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:600}
+.ejs-st.on{background:#EAF3DE;color:#27500A}
+.ejs-st.off{background:#FCEBEB;color:#791F1F}
+.mres{margin-top:8px;font-size:12px;padding:8px 10px;border-radius:var(--rmd);display:none}
+.mres.ok{background:#EAF3DE;color:#27500A;display:block}
+.mres.err{background:#FCEBEB;color:#791F1F;display:block}
+.ctag{background:var(--bg2);color:#378ADD;font-family:monospace;font-size:12px;padding:2px 6px;border-radius:4px}
+.ibox{background:var(--bg2);border-radius:var(--rmd);padding:10px 12px;font-size:12px;color:var(--tx2);line-height:1.6;margin-bottom:10px}
+.divider{margin:10px 0;border:none;border-top:.5px solid var(--bd)}
+/* Chrome/Edge border rendering fix */
+@supports not (border-width: 0.5px){
+  .hdr,.tabs,.tab,.ac,.sc,.uc,.card,.modal,.login-box,.bnav,.pwa-tip{border-width:1px!important}
+}
+
+/* ─ modal ─ */
+.overlay{position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.45);z-index:500;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:auto}
+.modal{background:var(--bg);border-radius:var(--rlg) var(--rlg) 0 0;padding:20px 20px calc(20px + var(--safe));width:100%;max-width:480px;max-height:90vh;overflow-y:auto;transform:translateY(60px);transition:transform .25s}
+.overlay.open .modal{transform:translateY(0)}
+.modal-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--tx2);margin-bottom:16px}
+.modal-close{position:absolute;top:16px;right:16px;background:none;border:none;cursor:pointer;color:var(--tx2);font-size:20px}
+.fgrp{margin-bottom:14px}
+.flbl{font-size:12px;color:var(--tx2);margin-bottom:5px;display:block}
+.frow{display:flex;gap:8px}
+.seg{display:flex;gap:4px;background:var(--bg2);border-radius:var(--rmd);padding:3px}
+.seg-btn{flex:1;padding:6px;font-size:12px;font-weight:500;border:none;background:transparent;color:var(--tx2);border-radius:6px;cursor:pointer}
+.seg-btn.active{background:var(--bg);color:var(--tx);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+
+/* ─ login gate ─ */
+.login-gate{position:fixed;top:0;right:0;bottom:0;left:0;background:var(--bg3);z-index:800;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-box{background:var(--bg);border:.5px solid var(--bd);border-radius:var(--rlg);padding:28px 24px;width:100%;max-width:340px}
+.login-icon{font-size:32px;margin-bottom:12px;display:block;text-align:center}
+.login-title{font-size:18px;font-weight:600;text-align:center;margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--tx2);text-align:center;margin-bottom:20px}
+.login-err{font-size:12px;color:#791F1F;background:#FCEBEB;border-radius:var(--rmd);padding:8px 10px;margin-bottom:12px;display:none}
+.login-err.show{display:block}
+
+/* ─ nav ─ */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--bg);border-top:.5px solid var(--bd);display:flex;padding:8px 0;padding-bottom:calc(8px + var(--safe));z-index:200}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--tx2);font-size:10px;border:none;background:none;cursor:pointer;padding:4px 0}
+.bni.active{color:var(--tx)}.bni i{font-size:22px}
+
+/* ─ misc ─ */
+.page{display:none}.page.active{display:block}
+.toast{position:fixed;bottom:calc(90px + var(--safe));left:50%;transform:translateX(-50%);background:rgba(30,30,28,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#f0ede6;font-size:13px;padding:10px 20px;border-radius:20px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.rbtn{background:none;border:none;color:var(--tx2);cursor:pointer;padding:6px;border-radius:var(--rmd);font-size:20px}
+.pwa-tip{background:#E6F1FB;border:.5px solid #85B7EB;border-radius:var(--rmd);padding:10px 12px;margin:12px 16px 0;display:flex;align-items:center;gap:8px}
+.pwa-text{font-size:12px;color:#0C447C;flex:1}
+.empty{text-align:center;padding:40px 16px;color:var(--tx2)}
+.role-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px}
+.role-badge.admin{background:#EEEDFE;color:#3C3489}
+.role-badge.user{background:#E6F1FB;color:#0C447C}
+</style>
+</head>
+<body>
+
+<!-- ══ ADMIN LOGIN GATE ══ -->
+<div class="login-gate" id="login-gate" style="display:none">
+  <div class="login-box">
+    <span class="login-icon">🔐</span>
+    <div class="login-title">관리자 로그인</div>
+    <div class="login-sub">설정 메뉴는 관리자만 접근 가능합니다</div>
+    <div class="login-err" id="login-err">비밀번호가 올바르지 않습니다</div>
+    <div class="fgrp">
+      <label class="flbl">관리자 비밀번호</label>
+      <input class="inp" type="password" id="login-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick="closeLoginGate()" style="flex:1">취소</button>
+      <button class="btn pri" onclick="doLogin()" style="flex:1">로그인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ACCOUNT MODAL (add / edit) ══ -->
+<div class="overlay" id="acc-modal">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeAccModal()"><i class="ti ti-x"></i></button>
+    <div class="modal-title" id="modal-title">계정 추가</div>
+    <div class="modal-sub" id="modal-sub">새 사용자 계정과 프로젝트 정보를 입력하세요</div>
+
+    <div class="fgrp">
+      <label class="flbl">사용자 이름 *</label>
+      <input class="inp" id="m-name" placeholder="홍길동" type="text">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">이메일 *</label>
+      <input class="inp" id="m-email" placeholder="user@company.com" type="email">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">계정 유형</label>
+      <div class="seg">
+        <button class="seg-btn active" id="seg-std" onclick="selectSeg('standard')">Standard</button>
+        <button class="seg-btn" id="seg-prm" onclick="selectSeg('premium')">✦ Premium</button>
+      </div>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">프로젝트/과제명</label>
+      <input class="inp" id="m-task" placeholder="AI 기반 분석 프로젝트" type="text">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">사용 허용 시간 (시간)</label>
+      <input class="inp" id="m-duration" type="number" min="1" max="72" value="8" placeholder="8">
+    </div>
+    <div class="fgrp">
+      <label class="flbl">토큰 한도</label>
+      <div class="seg">
+        <button class="seg-btn active" id="seg-tok-100" onclick="selectTokSeg(100000)">100K</button>
+        <button class="seg-btn" id="seg-tok-500" onclick="selectTokSeg(500000)">500K</button>
+        <button class="seg-btn" id="seg-tok-1m" onclick="selectTokSeg(1000000)">1M</button>
+      </div>
+    </div>
+
+    <input type="hidden" id="m-edit-id" value="">
+    <input type="hidden" id="m-seg-val" value="standard">
+    <input type="hidden" id="m-tok-val" value="100000">
+
+    <div class="btn-row" style="margin-top:4px">
+      <button class="btn" onclick="closeAccModal()" style="flex:1">취소</button>
+      <button class="btn pri" onclick="submitAccModal()" style="flex:1" id="modal-submit-btn">저장</button>
+    </div>
+    <div id="modal-err" style="font-size:12px;color:#791F1F;margin-top:8px;display:none"></div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div class="app">
+  <div class="toast" id="toast"></div>
+
+  <header class="hdr">
+    <div class="hdr-row">
+      <div>
+        <div class="hdr-title"><span class="live"></span>Claude Team Monitor</div>
+        <div class="hdr-sub" id="hdr-sub">실시간 모니터링</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <span class="role-badge" id="role-badge" style="display:none"></span>
+        <button class="rbtn" onclick="refreshAll()" aria-label="새로고침"><i class="ti ti-refresh"></i></button>
+      </div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-0" onclick="switchTab(0,this)">대시보드</button>
+    <button class="tab" id="tab-1" onclick="switchTab(1,this)">계정관리</button>
+    <button class="tab" id="tab-2" onclick="switchTab(2,this)">이력</button>
+    <button class="tab locked" id="tab-3" onclick="switchTab(3,this)">설정</button>
+  </div>
+
+  <main class="content">
+
+    <!-- ── PAGE 0: Dashboard ── -->
+    <div id="page-0" class="page active">
+      <div id="pwa-tip" class="pwa-tip">
+        <i class="ti ti-device-mobile" style="font-size:18px;color:#378ADD;flex-shrink:0"></i>
+        <span class="pwa-text">공유→홈 화면 추가(iPhone) / 메뉴→앱 설치(Android)</span>
+        <button onclick="document.getElementById('pwa-tip').remove()" style="background:none;border:none;color:#378ADD;cursor:pointer;font-size:18px"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="sec">
+        <div class="sec-title">전체 요약</div>
+        <div class="sg">
+          <div class="sc"><div class="sl">전체 계정</div><div class="sv" id="s-total">0</div><div class="ss" id="s-type-sub">—</div></div>
+          <div class="sc"><div class="sl">알림 대상</div><div class="sv" id="s-alert-cnt" style="color:#E24B4A">0</div><div class="ss">현재 기준</div></div>
+          <div class="sc"><div class="sl">총 토큰 사용</div><div class="sv" id="s-tokens">0</div><div class="ss">K tokens</div></div>
+          <div class="sc"><div class="sl">발송 알림</div><div class="sv" id="s-sent">0</div><div class="ss">오늘 기준</div></div>
+        </div>
+      </div>
+
+      <div class="sec" style="padding-top:0">
+        <div class="sec-title">유형별 평균 사용현황</div>
+        <div class="uc">
+          <div class="uh"><i class="ti ti-chart-bar" style="font-size:16px"></i>Standard vs Premium</div>
+          <div class="ur"><div class="utl" style="color:#0C447C">Standard</div><div class="ubw"><div class="ub std" id="std-bar" style="width:0%"></div></div><div class="utr" id="std-el">—</div></div>
+          <div class="ur" style="margin-bottom:0"><div class="utl" style="color:#3C3489">Premium</div><div class="ubw"><div class="ub prm" id="prm-bar" style="width:0%"></div></div><div class="utr" id="prm-el">—</div></div>
+          <div class="udg">
+            <div class="udi"><div class="udih std" id="std-lbl">Standard</div>
+              <div class="udr"><span class="udl">평균 사용시간</span><span class="udv" id="std-used">—</span></div>
+              <div class="udr"><span class="udl">평균 잔여시간</span><span class="udv" id="std-rem">—</span></div>
+              <div class="udr"><span class="udl">평균 토큰</span><span class="udv" id="std-tok">—</span></div>
+              <div class="udr"><span class="udl">토큰 사용률</span><span class="udv" id="std-pct">—</span></div>
+            </div>
+            <div class="udi"><div class="udih prm" id="prm-lbl">Premium</div>
+              <div class="udr"><span class="udl">평균 사용시간</span><span class="udv" id="prm-used">—</span></div>
+              <div class="udr"><span class="udl">평균 잔여시간</span><span class="udv" id="prm-rem">—</span></div>
+              <div class="udr"><span class="udl">평균 토큰</span><span class="udv" id="prm-tok">—</span></div>
+              <div class="udr"><span class="udl">토큰 사용률</span><span class="udv" id="prm-pct">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec" style="padding-top:0">
+        <div class="sec-title">계정 현황</div>
+        <div id="dash-list"></div>
+      </div>
+    </div>
+
+    <!-- ── PAGE 1: Account Management ── -->
+    <div id="page-1" class="page">
+      <div class="sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="sec-title" style="margin:0">계정 목록</div>
+          <button class="btn pri" onclick="openAccModal()" style="display:flex;align-items:center;gap:5px;padding:7px 12px">
+            <i class="ti ti-plus" style="font-size:14px"></i>계정 추가
+          </button>
+        </div>
+        <div id="manage-list"></div>
+      </div>
+    </div>
+
+    <!-- ── PAGE 2: History ── -->
+    <div id="page-2" class="page">
+      <div class="sec">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="sec-title" style="margin:0">알림 이력</div>
+          <button onclick="clearHistory()" style="font-size:11px;color:var(--tx2);background:none;border:.5px solid var(--bd);border-radius:var(--rmd);padding:4px 10px;cursor:pointer">초기화</button>
+        </div>
+
+        <!-- 정렬 & 필터 바 -->
+        <div class="sort-bar">
+          <span style="font-size:11px;color:var(--tx2);padding:5px 4px;align-self:center;flex-shrink:0">정렬:</span>
+          <button class="sort-btn active" id="sort-new" onclick="setSort('new',this)">최신순</button>
+          <button class="sort-btn" id="sort-old" onclick="setSort('old',this)">오래된순</button>
+          <button class="sort-btn" id="sort-type" onclick="setSort('type',this)">유형순</button>
+        </div>
+        <div class="sort-bar" style="margin-top:0">
+          <span style="font-size:11px;color:var(--tx2);padding:5px 4px;align-self:center;flex-shrink:0">필터:</span>
+          <button class="filter-btn active" id="f-all" onclick="setFilter('all',this)">전체</button>
+          <button class="filter-btn" id="f-warn" onclick="setFilter('warn',this)">⚠ 경고</button>
+          <button class="filter-btn" id="f-danger" onclick="setFilter('danger',this)">🔴 긴급</button>
+          <button class="filter-btn" id="f-mail" onclick="setFilter('mail',this)">✉ 메일</button>
+          <button class="filter-btn" id="f-ok" onclick="setFilter('ok',this)">✓ 변경</button>
+        </div>
+
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <!-- ── PAGE 3: Settings (admin only) ── -->
+    <div id="page-3" class="page">
+
+      <!-- locked view shown when not admin -->
+      <div id="settings-locked" style="display:none">
+        <div class="sec">
+          <div style="text-align:center;padding:48px 16px">
+            <i class="ti ti-lock" style="font-size:40px;color:var(--tx2);display:block;margin-bottom:12px"></i>
+            <div style="font-size:16px;font-weight:600;margin-bottom:6px">관리자 전용 메뉴</div>
+            <div style="font-size:13px;color:var(--tx2);margin-bottom:20px">설정은 관리자 계정으로만 접근할 수 있습니다</div>
+            <button class="btn pri" onclick="showLoginGate()" style="padding:10px 28px">관리자 로그인</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- unlocked view shown when admin -->
+      <div id="settings-unlocked" style="display:none">
+        <div class="sec">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <div style="font-size:13px;font-weight:600">관리자 모드</div>
+              <div style="font-size:11px;color:var(--tx2)">설정 및 계정 관리 권한 활성</div>
+            </div>
+            <button class="btn danger-btn" onclick="adminLogout()" style="font-size:12px;padding:6px 12px">로그아웃</button>
+          </div>
+
+          <div class="sec-title">EmailJS 이메일 연동</div>
+          <div class="ibox"><strong style="color:var(--tx)">무료 200건/월 · 서버 불필요 · 프론트엔드 전용</strong><br>
+            <a href="https://www.emailjs.com" target="_blank" style="color:#378ADD">emailjs.com</a> 가입 후 아래 키 입력</div>
+          <div class="card">
+            <div class="srow"><div><div class="slb">Service ID</div><div class="ssb">이메일 서비스 ID</div></div><input class="inp inp-sm" id="ejs-service" placeholder="service_xxx"></div>
+            <div class="srow"><div><div class="slb">Template ID</div><div class="ssb">알림 템플릿 ID</div></div><input class="inp inp-sm" id="ejs-template" placeholder="template_xxx"></div>
+            <div class="srow"><div><div class="slb">Public Key</div><div class="ssb">계정 공개 키</div></div><input class="inp inp-sm" id="ejs-pubkey" placeholder="xxxxx"></div>
+            <div class="btn-row" style="padding-top:10px">
+              <button class="btn pri" onclick="saveEjsSettings()" style="flex:1;padding:10px">저장</button>
+              <button class="btn" onclick="testEmail()" id="test-btn" style="flex:1;padding:10px">테스트 발송</button>
+            </div>
+            <div id="mail-result" class="mres"></div>
+            <div style="margin-top:10px;display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12px;color:var(--tx2)">연동 상태</span>
+              <span class="ejs-st off" id="ejs-badge"><i class="ti ti-x" style="font-size:11px"></i> 미연동</span>
+            </div>
+          </div>
+
+          <div class="sec-title" style="margin-top:4px">EmailJS 템플릿 변수</div>
+          <div class="card">
+            <div class="ibox" style="margin-bottom:10px">템플릿에서 아래 변수를 사용하세요.</div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="ctag">{{to_email}}</span><span style="font-size:12px;color:var(--tx2)">수신자 이메일</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="ctag">{{to_name}}</span><span style="font-size:12px;color:var(--tx2)">수신자 이름</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="ctag">{{account_type}}</span><span style="font-size:12px;color:var(--tx2)">Standard/Premium</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="ctag">{{task_name}}</span><span style="font-size:12px;color:var(--tx2)">프로젝트/과제명</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="ctag">{{remaining_time}}</span><span style="font-size:12px;color:var(--tx2)">잔여 시간</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="ctag">{{alert_type}}</span><span style="font-size:12px;color:var(--tx2)">알림 종류</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="ctag">{{token_used}}</span><span style="font-size:12px;color:var(--tx2)">토큰 사용량</span></div>
+            </div>
+          </div>
+
+          <div class="sec-title" style="margin-top:4px">알림 설정</div>
+          <div class="card">
+            <div class="srow"><div><div class="slb">관리자 이메일</div><div class="ssb">CC로 동시 수신</div></div><input class="inp inp-sm" type="email" id="cfg-admin" placeholder="admin@company.com"></div>
+            <div class="srow"><div><div class="slb">관리자 비밀번호</div><div class="ssb">설정 메뉴 접근용</div></div><input class="inp inp-sm" type="password" id="cfg-pw" placeholder="변경할 비밀번호"></div>
+            <div class="srow"><div><div class="slb">3시간 전 알림</div><div class="ssb">사용자+관리자</div></div><label class="toggle"><input type="checkbox" id="cfg-3h" checked><span class="sldr"></span></label></div>
+            <div class="srow"><div><div class="slb">1시간 전 알림</div><div class="ssb">사용자+관리자</div></div><label class="toggle"><input type="checkbox" id="cfg-1h" checked><span class="sldr"></span></label></div>
+            <div class="srow"><div><div class="slb">자동 갱신 주기</div><div class="ssb">현황 자동 확인</div></div>
+              <select class="inp inp-sm" id="cfg-interval" style="max-width:110px">
+                <option value="1800">30분</option><option value="3600" selected>1시간</option><option value="14400">4시간</option><option value="43200">12시간</option>
+              </select>
+            </div>
+            <div style="padding-top:12px"><button class="btn pri" onclick="saveSettings()" style="width:100%;padding:10px">설정 저장</button></div>
+          </div>
+
+          <div class="sec-title" style="margin-top:4px">계정 이메일/이름 수정</div>
+          <div id="settings-acc-list"></div>
+
+          <div class="sec-title" style="margin-top:4px">PWA 설치 가이드</div>
+          <div class="card">
+            <p style="font-size:13px;font-weight:600;margin-bottom:6px">아이폰 (Safari)</p>
+            <p style="font-size:13px;color:var(--tx2);line-height:1.6">Safari → 공유 버튼 → "홈 화면에 추가"</p>
+            <div class="divider"></div>
+            <p style="font-size:13px;font-weight:600;margin-bottom:6px">안드로이드 (Chrome)</p>
+            <p style="font-size:13px;color:var(--tx2);line-height:1.6">Chrome 메뉴(⋮) → "앱 설치" 또는 "홈 화면에 추가"</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav class="bnav">
+    <button class="bni active" id="bn-0" onclick="switchTab(0,null,this)"><i class="ti ti-layout-dashboard"></i>대시보드</button>
+    <button class="bni" id="bn-1" onclick="switchTab(1,null,this)"><i class="ti ti-users"></i>계정관리</button>
+    <button class="bni" id="bn-2" onclick="switchTab(2,null,this)"><i class="ti ti-history"></i>이력</button>
+    <button class="bni" id="bn-3" onclick="switchTab(3,null,this)"><i class="ti ti-settings"></i>설정</button>
+  </nav>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  DATA STORE
+// ═══════════════════════════════════════════════════
+const DEFAULT_ACCOUNTS = [
+  {id:1,name:'김민준',email:'minjun@company.com',type:'standard',task:'AI 기반 고객분석 프로젝트',
+   startTime:Date.now()-3*3600000-20*60000,duration:8*3600000,tokenUsed:45200,tokenLimit:100000,alerted3h:false,alerted1h:false},
+  {id:2,name:'이서연',email:'seoyeon@company.com',type:'standard',task:'마케팅 자동화 시스템 개발',
+   startTime:Date.now()-6*3600000,duration:8*3600000,tokenUsed:78900,tokenLimit:100000,alerted3h:true,alerted1h:false},
+  {id:3,name:'박도현',email:'dohyun@company.com',type:'standard',task:'데이터 파이프라인 구축',
+   startTime:Date.now()-1*3600000,duration:4*3600000,tokenUsed:12300,tokenLimit:100000,alerted3h:false,alerted1h:false},
+  {id:4,name:'최아인',email:'ain@company.com',type:'standard',task:'보고서 자동생성 연구',
+   startTime:Date.now()-7.5*3600000,duration:8*3600000,tokenUsed:91400,tokenLimit:100000,alerted3h:true,alerted1h:true},
+  {id:5,name:'정하윤',email:'hayoon@company.com',type:'premium',task:'신제품 전략 기획',
+   startTime:Date.now()-2*3600000,duration:12*3600000,tokenUsed:230000,tokenLimit:500000,alerted3h:false,alerted1h:false}
+];
+
+let accounts  = JSON.parse(localStorage.getItem('ct_accounts') || 'null') || DEFAULT_ACCOUNTS;
+let history   = JSON.parse(localStorage.getItem('ct_history')  || '[]');
+let cfg       = JSON.parse(localStorage.getItem('ct_cfg')      || '{}');
+let sentToday = parseInt(localStorage.getItem('ct_sent')       || '0');
+let isAdmin   = false;   // session-only, not persisted
+let nextId    = Math.max(...accounts.map(a=>a.id), 0) + 1;
+
+// history UI state
+let sortMode   = 'new';
+let filterMode = 'all';
+
+function persist() {
+  localStorage.setItem('ct_accounts', JSON.stringify(accounts));
+  localStorage.setItem('ct_history',  JSON.stringify(history));
+  localStorage.setItem('ct_cfg',      JSON.stringify(cfg));
+  localStorage.setItem('ct_sent',     sentToday);
+}
+
+// ═══════════════════════════════════════════════════
+//  ADMIN AUTH
+// ═══════════════════════════════════════════════════
+const DEFAULT_ADMIN_PW = 'admin1234';
+
+function getAdminPw() { return cfg.adminPw || DEFAULT_ADMIN_PW; }
+
+function showLoginGate() {
+  document.getElementById('login-pw').value = '';
+  document.getElementById('login-err').classList.remove('show');
+  document.getElementById('login-gate').style.display = 'flex';
+  setTimeout(()=>document.getElementById('login-pw').focus(), 100);
+}
+function closeLoginGate() {
+  document.getElementById('login-gate').style.display = 'none';
+}
+function doLogin() {
+  const pw = document.getElementById('login-pw').value;
+  if(pw === getAdminPw()) {
+    isAdmin = true;
+    closeLoginGate();
+    renderRoleBadge();
+    renderSettings();
+    addHist('ok','관리자 로그인','관리자');
+    showToast('관리자로 로그인되었습니다');
+  } else {
+    document.getElementById('login-err').classList.add('show');
+    document.getElementById('login-pw').select();
+  }
+}
+function adminLogout() {
+  isAdmin = false;
+  renderRoleBadge();
+  renderSettings();
+  addHist('ok','관리자 로그아웃','관리자');
+  showToast('로그아웃되었습니다');
+}
+function renderRoleBadge() {
+  const b = document.getElementById('role-badge');
+  if(isAdmin) {
+    b.style.display='inline-flex';
+    b.className='role-badge admin';
+    b.innerHTML='<i class="ti ti-shield-check" style="font-size:12px"></i>관리자';
+  } else {
+    b.style.display='none';
+  }
+  // update tab lock indicator
+  const t3 = document.getElementById('tab-3');
+  if(isAdmin) t3.classList.remove('locked');
+  else t3.classList.add('locked');
+}
+
+// ═══════════════════════════════════════════════════
+//  EMAILJS
+// ═══════════════════════════════════════════════════
+function ejsReady() { return !!(cfg.ejsService && cfg.ejsTemplate && cfg.ejsPubkey); }
+function initEmailJS() {
+  if(ejsReady()) emailjs.init({publicKey:cfg.ejsPubkey});
+  updateEjsBadge(ejsReady());
+}
+function updateEjsBadge(ok) {
+  const b=document.getElementById('ejs-badge'); if(!b) return;
+  b.className='ejs-st '+(ok?'on':'off');
+  b.innerHTML=ok?'<i class="ti ti-check" style="font-size:11px"></i> 연동됨':'<i class="ti ti-x" style="font-size:11px"></i> 미연동';
+  const hs=document.getElementById('hdr-sub');
+  if(hs) hs.textContent=ok?'실시간 모니터링 · 이메일 연동 활성':'실시간 모니터링';
+}
+async function sendMail(toEmail,toName,params) {
+  if(!ejsReady()) return false;
+  try { await emailjs.send(cfg.ejsService,cfg.ejsTemplate,{to_email:toEmail,to_name:toName,...params}); return true; }
+  catch(e) { console.error('EJS:',e); return false; }
+}
+async function sendAlertPair(acc,label) {
+  const rem=getRem(acc);
+  const p={account_type:acc.type==='premium'?'Premium':'Standard',task_name:acc.task||'미입력',
+    remaining_time:fmtRem(rem),alert_type:label,token_used:fmtTok(acc.tokenUsed)+'/'+fmtTok(acc.tokenLimit),admin_email:cfg.adminEmail||''};
+  const ok1=await sendMail(acc.email,acc.name,p);
+  if(cfg.adminEmail && cfg.adminEmail!==acc.email)
+    await sendMail(cfg.adminEmail,'관리자',{...p,alert_type:'[관리자 복사] '+label});
+  return ok1;
+}
+async function testEmail() {
+  const btn=document.getElementById('test-btn'),res=document.getElementById('mail-result');
+  if(!ejsReady()){res.className='mres err';res.textContent='Service ID, Template ID, Public Key를 먼저 저장해주세요.';return;}
+  btn.textContent='발송 중…';btn.disabled=true;
+  try {
+    const ok=await sendMail(cfg.adminEmail||'test@example.com','테스트',{account_type:'Standard',task_name:'테스트 과제',remaining_time:'3시간 남음',alert_type:'[테스트]',token_used:'50K/100K',admin_email:''});
+    if(ok){res.className='mres ok';res.textContent='✓ 테스트 메일 발송 성공!';addHist('mail','[테스트] EmailJS 발송 성공','시스템');}
+    else throw new Error('발송 실패');
+  }catch(e){res.className='mres err';res.textContent='발송 실패: '+e.message;}
+  finally{btn.textContent='테스트 발송';btn.disabled=false;}
+}
+function saveEjsSettings() {
+  cfg.ejsService=document.getElementById('ejs-service').value.trim();
+  cfg.ejsTemplate=document.getElementById('ejs-template').value.trim();
+  cfg.ejsPubkey=document.getElementById('ejs-pubkey').value.trim();
+  persist();initEmailJS();
+  addHist('mail','EmailJS 연동 정보 저장','관리자');
+  showToast(ejsReady()?'EmailJS 연동 저장됨':'키를 모두 입력해주세요');
+  document.getElementById('mail-result').style.display='none';
+}
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+const getRem = a=>Math.max(0,(a.startTime+a.duration)-Date.now());
+const getSt  = r=>r<=3600000?'danger':r<=10800000?'warn':'ok';
+const fmtTok = n=>n>=1000?Math.round(n/1000)+'K':String(n);
+const fmtPct = (u,l)=>Math.min(100,Math.round(u/l*100));
+const barCls = p=>p>80?'danger':p>60?'warn':'ok';
+function fmtDur(ms){if(ms<=0)return '0분';const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);return h>0?h+'시간 '+m+'분':m+'분';}
+function fmtRem(ms){if(ms<=0)return '사용 종료';return fmtDur(ms)+' 남음';}
+function nowStr(){return new Date().toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function addHist(type,msg,user){
+  history.unshift({id:Date.now(),type,message:msg,user,time:nowStr(),ts:Date.now()});
+  if(history.length>200)history=history.slice(0,200);
+  persist();
+}
+
+// ═══════════════════════════════════════════════════
+//  ACCOUNT MODAL
+// ═══════════════════════════════════════════════════
+function openAccModal(editId) {
+  const modal = document.getElementById('acc-modal');
+  const isEdit = editId !== undefined;
+  document.getElementById('modal-title').textContent  = isEdit ? '계정 수정' : '계정 추가';
+  document.getElementById('modal-sub').textContent    = isEdit ? '계정 정보와 프로젝트명을 수정하세요' : '새 사용자 계정과 프로젝트 정보를 입력하세요';
+  document.getElementById('modal-submit-btn').textContent = isEdit ? '저장' : '추가';
+  document.getElementById('m-edit-id').value = isEdit ? editId : '';
+  document.getElementById('modal-err').style.display = 'none';
+
+  if(isEdit) {
+    const acc = accounts.find(a=>a.id===editId);
+    if(!acc) return;
+    document.getElementById('m-name').value = acc.name;
+    document.getElementById('m-email').value = acc.email;
+    document.getElementById('m-task').value = acc.task||'';
+    document.getElementById('m-duration').value = Math.round(acc.duration/3600000);
+    selectSeg(acc.type);
+    selectTokSeg(acc.tokenLimit);
+  } else {
+    document.getElementById('m-name').value = '';
+    document.getElementById('m-email').value = '';
+    document.getElementById('m-task').value = '';
+    document.getElementById('m-duration').value = '8';
+    selectSeg('standard');
+    selectTokSeg(100000);
+  }
+  modal.classList.add('open');
+  setTimeout(()=>document.getElementById('m-name').focus(),200);
+}
+function closeAccModal() {
+  document.getElementById('acc-modal').classList.remove('open');
+}
+function selectSeg(type) {
+  document.getElementById('m-seg-val').value = type;
+  document.getElementById('seg-std').classList.toggle('active', type==='standard');
+  document.getElementById('seg-prm').classList.toggle('active', type==='premium');
+}
+function selectTokSeg(limit) {
+  document.getElementById('m-tok-val').value = limit;
+  document.getElementById('seg-tok-100').classList.toggle('active', limit===100000);
+  document.getElementById('seg-tok-500').classList.toggle('active', limit===500000);
+  document.getElementById('seg-tok-1m').classList.toggle('active',  limit===1000000);
+}
+function submitAccModal() {
+  const name     = document.getElementById('m-name').value.trim();
+  const email    = document.getElementById('m-email').value.trim();
+  const task     = document.getElementById('m-task').value.trim();
+  const duration = parseInt(document.getElementById('m-duration').value)||8;
+  const type     = document.getElementById('m-seg-val').value;
+  const tokLimit = parseInt(document.getElementById('m-tok-val').value)||100000;
+  const editId   = document.getElementById('m-edit-id').value;
+  const errEl    = document.getElementById('modal-err');
+
+  if(!name){errEl.textContent='이름을 입력해주세요';errEl.style.display='block';return;}
+  if(!email||!email.includes('@')){errEl.textContent='올바른 이메일을 입력해주세요';errEl.style.display='block';return;}
+
+  if(editId) {
+    const acc = accounts.find(a=>a.id===parseInt(editId));
+    if(acc) {
+      const oldTask=acc.task, oldName=acc.name;
+      acc.name=name; acc.email=email; acc.task=task;
+      acc.duration=duration*3600000; acc.type=type; acc.tokenLimit=tokLimit;
+      addHist('ok',`"${oldName}→${name}" 계정 수정 (과제: ${task})`, '관리자');
+    }
+  } else {
+    accounts.push({
+      id:nextId++, name, email, type, task,
+      startTime:Date.now(), duration:duration*3600000,
+      tokenUsed:0, tokenLimit:tokLimit,
+      alerted3h:false, alerted1h:false
+    });
+    addHist('ok',`계정 추가: ${name} (${type}) — ${task}`, '관리자');
+  }
+  persist(); closeAccModal();
+  renderDashboard(); renderManage();
+  showToast(editId?'계정이 수정되었습니다':'계정이 추가되었습니다');
+}
+function deleteAccount(id) {
+  const acc=accounts.find(a=>a.id===id); if(!acc) return;
+  if(!confirm(`"${acc.name}" 계정을 삭제할까요?`)) return;
+  accounts=accounts.filter(a=>a.id!==id);
+  addHist('ok',`계정 삭제: ${acc.name}`,'관리자');
+  persist(); renderDashboard(); renderManage();
+  showToast('계정이 삭제되었습니다');
+}
+
+// ═══════════════════════════════════════════════════
+//  USAGE STATS
+// ═══════════════════════════════════════════════════
+function calcStats(type) {
+  const list=accounts.filter(a=>a.type===type); if(!list.length) return null;
+  const n=list.length;
+  const avgEl=list.reduce((s,a)=>s+(Date.now()-a.startTime),0)/n;
+  const avgRm=list.reduce((s,a)=>s+getRem(a),0)/n;
+  const avgTk=Math.round(list.reduce((s,a)=>s+a.tokenUsed,0)/n);
+  const avgPc=Math.round(list.reduce((s,a)=>s+fmtPct(a.tokenUsed,a.tokenLimit),0)/n);
+  const avgDr=list.reduce((s,a)=>s+a.duration,0)/n;
+  return {avgEl,avgRm,avgTk,avgPc,pct:Math.min(100,Math.round(avgEl/avgDr*100)),n};
+}
+function renderUsage() {
+  const s=calcStats('standard'), p=calcStats('premium');
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  const setW=(id,w)=>{const e=document.getElementById(id);if(e)e.style.width=Math.max(0,Math.min(100,w))+'%';};
+  const stdN=accounts.filter(a=>a.type==='standard').length;
+  const prmN=accounts.filter(a=>a.type==='premium').length;
+  set('std-lbl',`Standard (${stdN}명)`); set('prm-lbl',`Premium (${prmN}명)`);
+  if(s){setW('std-bar',s.pct);set('std-el',fmtDur(s.avgEl)+' 경과');set('std-used',fmtDur(s.avgEl));set('std-rem',fmtDur(s.avgRm));set('std-tok',fmtTok(s.avgTk));set('std-pct',s.avgPc+'%');}
+  if(p){setW('prm-bar',p.pct);set('prm-el',fmtDur(p.avgEl)+' 경과');set('prm-used',fmtDur(p.avgEl));set('prm-rem',fmtDur(p.avgRm));set('prm-tok',fmtTok(p.avgTk));set('prm-pct',p.avgPc+'%');}
+  set('s-total',accounts.length);
+  set('s-type-sub',`Standard ${stdN} / Premium ${prmN}`);
+}
+
+// ═══════════════════════════════════════════════════
+//  ALERTS
+// ═══════════════════════════════════════════════════
+async function checkAlerts() {
+  let changed=false;
+  for(const acc of accounts) {
+    const rem=getRem(acc),st=getSt(rem);
+    if(st==='warn'&&!acc.alerted3h&&cfg.alert3h!==false) {
+      acc.alerted3h=true;sentToday++;changed=true;
+      addHist('warn',`[3h] ${acc.name} (${acc.type.toUpperCase()}) — ${acc.task}`,acc.name);
+      showToast(`📧 ${acc.name} 3시간 전 알림`);
+      if(ejsReady()){const ok=await sendAlertPair(acc,'종료 3시간 전');addHist('mail',ok?`✓ 발송 → ${acc.email}`:`✗ 실패 → ${acc.email}`,'시스템');}
+      else addHist('info','EmailJS 미연동','시스템');
+    }
+    if(st==='danger'&&!acc.alerted1h&&cfg.alert1h!==false) {
+      acc.alerted1h=true;sentToday++;changed=true;
+      addHist('danger',`[1h🚨] ${acc.name} (${acc.type.toUpperCase()}) — 1시간 내 종료`,acc.name);
+      showToast(`🚨 ${acc.name} 1시간 전 긴급`);
+      if(ejsReady()){const ok=await sendAlertPair(acc,'⚠️ 종료 1시간 전');addHist('mail',ok?`✓ 긴급 발송 → ${acc.email}`:`✗ 긴급 실패 → ${acc.email}`,'시스템');}
+      else addHist('info','EmailJS 미연동 — 긴급 미발송','시스템');
+    }
+  }
+  if(changed) persist();
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER DASHBOARD
+// ═══════════════════════════════════════════════════
+function renderDashboard() {
+  let alertCnt=0,totalTok=0,html='';
+  accounts.forEach(acc=>{
+    const rem=getRem(acc),st=getSt(rem),pct=fmtPct(acc.tokenUsed,acc.tokenLimit);
+    if(st!=='ok')alertCnt++;totalTok+=acc.tokenUsed;
+    html+=`<div class="ac ${st!=='ok'?st:''}">
+      <div class="act">
+        <div>
+          <div class="acn">${acc.name}</div>
+          <div class="ace">${acc.email}</div>
+          <div class="acp"><i class="ti ti-briefcase" style="font-size:11px;margin-right:3px"></i>${acc.task||'과제명 미입력'}</div>
+        </div>
+        <div class="bgs">
+          <span class="bg ${acc.type==='premium'?'bg-prm':'bg-std'}">${acc.type==='premium'?'✦ Premium':'Standard'}</span>
+          ${st==='danger'?'<span class="bg bg-danger">🔴 1시간</span>':st==='warn'?'<span class="bg bg-warn">🟡 3시간</span>':'<span class="bg bg-ok">정상</span>'}
+        </div>
+      </div>
+      <div class="mr"><span class="ml"><i class="ti ti-clock" style="font-size:12px;margin-right:3px"></i>잔여시간</span><span class="mv ${st!=='ok'?st:''}">${fmtRem(rem)}</span></div>
+      <div class="pw"><div class="pb ${barCls(pct)}" style="width:${pct}%"></div></div>
+      <div class="mr"><span class="ml">토큰 ${pct}%</span><span class="mv">${fmtTok(acc.tokenUsed)} / ${fmtTok(acc.tokenLimit)}</span></div>
+    </div>`;
+  });
+  document.getElementById('dash-list').innerHTML=html;
+  document.getElementById('s-alert-cnt').textContent=alertCnt;
+  document.getElementById('s-tokens').textContent=fmtTok(totalTok);
+  document.getElementById('s-sent').textContent=sentToday;
+  renderUsage();
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER MANAGE
+// ═══════════════════════════════════════════════════
+function renderManage() {
+  if(!accounts.length){document.getElementById('manage-list').innerHTML='<div class="empty"><i class="ti ti-users" style="font-size:32px;display:block;margin-bottom:8px"></i>등록된 계정이 없습니다</div>';return;}
+  let html='';
+  accounts.forEach(acc=>{
+    const rem=getRem(acc),st=getSt(rem),pct=fmtPct(acc.tokenUsed,acc.tokenLimit),el=Date.now()-acc.startTime;
+    html+=`<div class="ac ${st!=='ok'?st:''}">
+      <div class="act">
+        <div>
+          <div class="acn">${acc.name}</div>
+          <div class="ace">${acc.email}</div>
+          ${acc.task?`<div class="acp"><i class="ti ti-briefcase" style="font-size:11px;margin-right:3px"></i>${acc.task}</div>`:''}
+        </div>
+        <div class="bgs">
+          <span class="bg ${acc.type==='premium'?'bg-prm':'bg-std'}">${acc.type==='premium'?'✦ Premium':'Standard'}</span>
+          <span class="bg ${st==='danger'?'bg-danger':st==='warn'?'bg-warn':'bg-ok'}">${st==='danger'?'🔴 긴급':st==='warn'?'🟡 주의':'정상'}</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+        <div style="background:var(--bg2);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">사용시간</div>
+          <div style="font-size:13px;font-weight:600">${fmtDur(el)}</div>
+        </div>
+        <div style="background:var(--bg2);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">잔여시간</div>
+          <div style="font-size:13px;font-weight:600;color:${st==='danger'?'#A32D2D':st==='warn'?'#633806':'inherit'}">${fmtRem(rem)}</div>
+        </div>
+      </div>
+      <div class="pw"><div class="pb ${barCls(pct)}" style="width:${pct}%"></div></div>
+      <div class="mr" style="margin-bottom:10px">
+        <span class="ml">토큰 ${pct}% · ${fmtTok(acc.tokenUsed)}/${fmtTok(acc.tokenLimit)}</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="openAccModal(${acc.id})" style="flex:1;font-size:12px"><i class="ti ti-edit" style="font-size:12px"></i> 수정</button>
+        <button class="btn danger-btn" onclick="deleteAccount(${acc.id})" style="flex:1;font-size:12px"><i class="ti ti-trash" style="font-size:12px"></i> 삭제</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('manage-list').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER HISTORY  (with sort + filter)
+// ═══════════════════════════════════════════════════
+function setSort(mode,btn) {
+  sortMode=mode;
+  document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory();
+}
+function setFilter(mode,btn) {
+  filterMode=mode;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory();
+}
+function renderHistory() {
+  const el=document.getElementById('history-list');
+  let list = [...history];
+
+  // filter
+  if(filterMode!=='all') list=list.filter(h=>h.type===filterMode);
+
+  // sort
+  if(sortMode==='new')  list.sort((a,b)=>(b.ts||0)-(a.ts||0));
+  else if(sortMode==='old') list.sort((a,b)=>(a.ts||0)-(b.ts||0));
+  else if(sortMode==='type') list.sort((a,b)=>a.type.localeCompare(b.type));
+
+  if(!list.length){
+    el.innerHTML='<div class="empty"><i class="ti ti-history" style="font-size:32px;display:block;margin-bottom:8px"></i>'+(filterMode==='all'?'이력이 없습니다':'해당 유형의 이력이 없습니다')+'</div>';
+    return;
+  }
+  el.innerHTML=list.slice(0,80).map(h=>`<div class="hi">
+    <div class="hd ${h.type}"></div>
+    <div><div class="ht">${h.message}</div><div class="hm">${h.time} · ${h.user}</div></div>
+  </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  RENDER SETTINGS
+// ═══════════════════════════════════════════════════
+function renderSettings() {
+  document.getElementById('settings-locked').style.display   = isAdmin?'none':'block';
+  document.getElementById('settings-unlocked').style.display = isAdmin?'block':'none';
+  if(!isAdmin) return;
+  // populate fields
+  const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!==undefined)e.value=v;};
+  if(cfg.adminEmail) sv('cfg-admin',cfg.adminEmail);
+  document.getElementById('cfg-3h').checked=cfg.alert3h!==false;
+  document.getElementById('cfg-1h').checked=cfg.alert1h!==false;
+  if(cfg.interval) sv('cfg-interval',cfg.interval);
+  if(cfg.ejsService)  sv('ejs-service',cfg.ejsService);
+  if(cfg.ejsTemplate) sv('ejs-template',cfg.ejsTemplate);
+  if(cfg.ejsPubkey)   sv('ejs-pubkey',cfg.ejsPubkey);
+  updateEjsBadge(ejsReady());
+  // account list
+  let html='';
+  accounts.forEach(acc=>{
+    html+=`<div class="card" style="margin-bottom:8px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">${acc.name}
+        <span class="bg ${acc.type==='premium'?'bg-prm':'bg-std'}" style="margin-left:4px">${acc.type}</span>
+      </div>
+      <div class="srow">
+        <div><div class="slb" style="font-size:13px">이름</div></div>
+        <input class="inp" type="text" id="sname-${acc.id}" value="${acc.name}" style="max-width:160px">
+      </div>
+      <div class="srow">
+        <div><div class="slb" style="font-size:13px">이메일</div></div>
+        <input class="inp" type="email" id="semail-${acc.id}" value="${acc.email}" style="max-width:200px">
+      </div>
+      <div style="padding-top:8px">
+        <button class="btn" onclick="saveAccInfo(${acc.id})" style="font-size:12px">저장</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById('settings-acc-list').innerHTML=html;
+}
+function saveAccInfo(id) {
+  const acc=accounts.find(a=>a.id===id); if(!acc) return;
+  const nm=document.getElementById('sname-'+id)?.value||'';
+  const em=document.getElementById('semail-'+id)?.value||'';
+  const old=acc.name;
+  acc.name=nm; acc.email=em;
+  addHist('ok',`"${old}" 계정정보 수정 (이름: ${nm}, 메일: ${em})`,'관리자');
+  persist(); renderDashboard(); renderManage(); renderSettings();
+  showToast('저장되었습니다');
+}
+function saveSettings() {
+  cfg.adminEmail=document.getElementById('cfg-admin').value;
+  cfg.alert3h=document.getElementById('cfg-3h').checked;
+  cfg.alert1h=document.getElementById('cfg-1h').checked;
+  cfg.interval=parseInt(document.getElementById('cfg-interval').value);
+  const newPw=document.getElementById('cfg-pw').value;
+  if(newPw.length>=4){cfg.adminPw=newPw;document.getElementById('cfg-pw').value='';}
+  addHist('info',`설정 저장 — 수신: ${cfg.adminEmail}`,'관리자');
+  persist(); resetInterval(); showToast('설정이 저장되었습니다');
+}
+
+// ═══════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════
+function clearHistory() {
+  if(!confirm('이력을 모두 삭제할까요?')) return;
+  history=[]; persist(); renderHistory(); showToast('이력이 초기화되었습니다');
+}
+async function refreshAll() {
+  await checkAlerts(); renderDashboard(); renderManage(); renderHistory();
+  showToast('새로고침 완료');
+}
+
+// ═══════════════════════════════════════════════════
+//  TAB ROUTING
+// ═══════════════════════════════════════════════════
+function switchTab(n,tabEl) {
+  if(n===3 && !isAdmin) { showLoginGate(); return; }
+  document.querySelectorAll('.page').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.bni').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab')[n]?.classList.add('active');
+  document.getElementById('bn-'+n)?.classList.add('active');
+  if(n===0){checkAlerts();renderDashboard();}
+  if(n===1) renderManage();
+  if(n===2) renderHistory();
+  if(n===3) renderSettings();
+}
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ═══════════════════════════════════════════════════
+//  AUTO REFRESH
+// ═══════════════════════════════════════════════════
+let refreshTimer;
+function resetInterval(){
+  clearInterval(refreshTimer);
+  refreshTimer=setInterval(async()=>{await checkAlerts();renderDashboard();},(cfg.interval||3600)*1000);
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+initEmailJS();
+renderRoleBadge();
+checkAlerts().then(()=>renderDashboard());
+resetInterval();
+</script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js', {scope:'./'})
+      .then(function(reg){ console.log('SW registered:', reg.scope); })
+      .catch(function(err){ console.warn('SW registration skipped:', err); });
+  });
+}
+</script>
+</body>
+</html>
