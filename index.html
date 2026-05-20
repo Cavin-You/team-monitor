@@ -223,6 +223,8 @@ input:checked+.sldr:before{transform:translateX(20px)}
     <div class="modal-title" id="modal-title">계정 추가</div>
     <div class="modal-sub" id="modal-sub">새 사용자 계정과 프로젝트 정보를 입력하세요</div>
 
+    <!-- 기본 정보 (모든 사용자) -->
+    <div style="font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">기본 정보</div>
     <div class="fgrp">
       <label class="flbl">사용자 이름 *</label>
       <input class="inp" id="m-name" placeholder="홍길동" type="text">
@@ -232,26 +234,65 @@ input:checked+.sldr:before{transform:translateX(20px)}
       <input class="inp" id="m-email" placeholder="user@company.com" type="email">
     </div>
     <div class="fgrp">
-      <label class="flbl">계정 유형</label>
-      <div class="seg">
-        <button class="seg-btn active" id="seg-std" onclick="selectSeg('standard')">Standard</button>
-        <button class="seg-btn" id="seg-prm" onclick="selectSeg('premium')">✦ Premium</button>
-      </div>
-    </div>
-    <div class="fgrp">
       <label class="flbl">프로젝트/과제명</label>
       <input class="inp" id="m-task" placeholder="AI 기반 분석 프로젝트" type="text">
     </div>
     <div class="fgrp">
-      <label class="flbl">사용 허용 시간 (시간)</label>
-      <input class="inp" id="m-duration" type="number" min="1" max="72" value="8" placeholder="8">
+      <label class="flbl">Pain Point <span style="font-size:11px;color:var(--tx2);font-weight:400">— 현재 업무에서 겪는 어려움</span></label>
+      <textarea class="inp" id="m-pain" placeholder="예) 반복 보고서 작성에 시간이 너무 많이 소요됨" rows="2" style="resize:vertical;line-height:1.5"></textarea>
     </div>
     <div class="fgrp">
-      <label class="flbl">토큰 한도</label>
-      <div class="seg">
-        <button class="seg-btn active" id="seg-tok-100" onclick="selectTokSeg(100000)">100K</button>
-        <button class="seg-btn" id="seg-tok-500" onclick="selectTokSeg(500000)">500K</button>
-        <button class="seg-btn" id="seg-tok-1m" onclick="selectTokSeg(1000000)">1M</button>
+      <label class="flbl">개선 목표 <span style="font-size:11px;color:var(--tx2);font-weight:400">— Claude 활용으로 기대하는 개선</span></label>
+      <textarea class="inp" id="m-goal" placeholder="예) 보고서 초안 작성 시간 50% 단축" rows="2" style="resize:vertical;line-height:1.5"></textarea>
+    </div>
+    <div class="fgrp">
+      <label class="flbl">희망 사용시간 <span style="font-size:11px;color:var(--tx2);font-weight:400">— 사용자가 원하는 이용 시간</span></label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="inp" id="m-desired" type="number" min="1" max="72" placeholder="예) 6" style="max-width:100px">
+        <span style="font-size:13px;color:var(--tx2)">시간</span>
+      </div>
+    </div>
+
+    <!-- 관리자 전용 구역 -->
+    <div id="modal-admin-section" style="display:none">
+      <div style="display:flex;align-items:center;gap:6px;margin:16px 0 10px;padding-top:14px;border-top:.5px solid var(--bd)">
+        <i class="ti ti-shield-check" style="font-size:13px;color:#3C3489"></i>
+        <span style="font-size:10px;font-weight:700;color:#3C3489;text-transform:uppercase;letter-spacing:.06em">관리자 전용 설정</span>
+      </div>
+      <div class="fgrp">
+        <label class="flbl">계정 유형</label>
+        <div class="seg">
+          <button class="seg-btn active" id="seg-std" onclick="selectSeg('standard')">Standard</button>
+          <button class="seg-btn" id="seg-prm" onclick="selectSeg('premium')">✦ Premium</button>
+        </div>
+      </div>
+      <div class="fgrp">
+        <label class="flbl">사용 허용 시간 (시간)</label>
+        <div style="display:flex;align-items:center;gap:8px">
+          <input class="inp" id="m-duration" type="number" min="1" max="72" value="8" placeholder="8" style="max-width:100px">
+          <span style="font-size:13px;color:var(--tx2)">시간</span>
+        </div>
+      </div>
+      <div class="fgrp">
+        <label class="flbl">토큰 한도</label>
+        <div class="seg">
+          <button class="seg-btn active" id="seg-tok-100" onclick="selectTokSeg(100000)">100K</button>
+          <button class="seg-btn" id="seg-tok-500" onclick="selectTokSeg(500000)">500K</button>
+          <button class="seg-btn" id="seg-tok-1m" onclick="selectTokSeg(1000000)">1M</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 비관리자: 읽기 전용 표시 -->
+    <div id="modal-user-section" style="display:none">
+      <div style="display:flex;align-items:center;gap:6px;margin:16px 0 10px;padding-top:14px;border-top:.5px solid var(--bd)">
+        <i class="ti ti-lock" style="font-size:13px;color:var(--tx2)"></i>
+        <span style="font-size:10px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em">관리자 설정 (읽기 전용)</span>
+      </div>
+      <div style="background:var(--bg2);border-radius:var(--rmd);padding:10px 12px;display:flex;gap:16px;flex-wrap:wrap">
+        <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">계정 유형</div><div style="font-size:13px;font-weight:600" id="modal-ro-type">—</div></div>
+        <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">허용 시간</div><div style="font-size:13px;font-weight:600" id="modal-ro-dur">—</div></div>
+        <div><div style="font-size:10px;color:var(--tx2);margin-bottom:3px">토큰 한도</div><div style="font-size:13px;font-weight:600" id="modal-ro-tok">—</div></div>
       </div>
     </div>
 
@@ -259,7 +300,7 @@ input:checked+.sldr:before{transform:translateX(20px)}
     <input type="hidden" id="m-seg-val" value="standard">
     <input type="hidden" id="m-tok-val" value="100000">
 
-    <div class="btn-row" style="margin-top:4px">
+    <div class="btn-row" style="margin-top:16px">
       <button class="btn" onclick="closeAccModal()" style="flex:1">취소</button>
       <button class="btn pri" onclick="submitAccModal()" style="flex:1" id="modal-submit-btn">저장</button>
     </div>
@@ -344,7 +385,7 @@ input:checked+.sldr:before{transform:translateX(20px)}
       <div class="sec">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div class="sec-title" style="margin:0">계정 목록</div>
-          <button class="btn pri" onclick="openAccModal()" style="display:flex;align-items:center;gap:5px;padding:7px 12px">
+          <button class="btn pri" id="add-acc-btn" onclick="openAccModal()" style="display:none;align-items:center;gap:5px;padding:7px 12px">
             <i class="ti ti-plus" style="font-size:14px"></i>계정 추가
           </button>
         </div>
@@ -483,14 +524,19 @@ input:checked+.sldr:before{transform:translateX(20px)}
 // ═══════════════════════════════════════════════════
 const DEFAULT_ACCOUNTS = [
   {id:1,name:'김민준',email:'minjun@company.com',type:'standard',task:'AI 기반 고객분석 프로젝트',
+   pain:'고객 데이터 분석 보고서 작성에 매일 3시간 이상 소요',goal:'보고서 자동화로 분석 시간 60% 단축',desiredHours:6,
    startTime:Date.now()-3*3600000-20*60000,duration:8*3600000,tokenUsed:45200,tokenLimit:100000,alerted3h:false,alerted1h:false},
   {id:2,name:'이서연',email:'seoyeon@company.com',type:'standard',task:'마케팅 자동화 시스템 개발',
+   pain:'캠페인 기획 문서 반복 작성과 카피 작업의 비효율',goal:'마케팅 카피 및 기획안 초안 작성 자동화',desiredHours:8,
    startTime:Date.now()-6*3600000,duration:8*3600000,tokenUsed:78900,tokenLimit:100000,alerted3h:true,alerted1h:false},
   {id:3,name:'박도현',email:'dohyun@company.com',type:'standard',task:'데이터 파이프라인 구축',
+   pain:'ETL 스크립트 작성 시 반복적인 코드 패턴 처리',goal:'파이프라인 코드 생성 속도 향상 및 오류 감소',desiredHours:4,
    startTime:Date.now()-1*3600000,duration:4*3600000,tokenUsed:12300,tokenLimit:100000,alerted3h:false,alerted1h:false},
   {id:4,name:'최아인',email:'ain@company.com',type:'standard',task:'보고서 자동생성 연구',
+   pain:'경영진 주간 보고서 포맷 통일 및 내용 정리에 과도한 시간',goal:'주간 보고서 작성 시간을 2시간에서 30분으로 단축',desiredHours:8,
    startTime:Date.now()-7.5*3600000,duration:8*3600000,tokenUsed:91400,tokenLimit:100000,alerted3h:true,alerted1h:true},
   {id:5,name:'정하윤',email:'hayoon@company.com',type:'premium',task:'신제품 전략 기획',
+   pain:'시장조사 데이터 통합 분석 및 전략 문서화 병목',goal:'전략 기획 문서 품질 향상 및 검토 사이클 단축',desiredHours:10,
    startTime:Date.now()-2*3600000,duration:12*3600000,tokenUsed:230000,tokenLimit:500000,alerted3h:false,alerted1h:false}
 ];
 
@@ -558,6 +604,9 @@ function renderRoleBadge() {
   } else {
     b.style.display='none';
   }
+  // 계정 추가 버튼: 관리자만 표시
+  const addBtn = document.getElementById('add-acc-btn');
+  if(addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
   // update tab lock indicator
   const t3 = document.getElementById('tab-3');
   if(isAdmin) t3.classList.remove('locked');
@@ -643,19 +692,37 @@ function openAccModal(editId) {
   document.getElementById('m-edit-id').value = isEdit ? editId : '';
   document.getElementById('modal-err').style.display = 'none';
 
+  // 관리자 전용 구역 표시 제어
+  document.getElementById('modal-admin-section').style.display = isAdmin ? 'block' : 'none';
+  document.getElementById('modal-user-section').style.display  = (isEdit && !isAdmin) ? 'block' : 'none';
+
   if(isEdit) {
     const acc = accounts.find(a=>a.id===editId);
     if(!acc) return;
-    document.getElementById('m-name').value = acc.name;
-    document.getElementById('m-email').value = acc.email;
-    document.getElementById('m-task').value = acc.task||'';
-    document.getElementById('m-duration').value = Math.round(acc.duration/3600000);
-    selectSeg(acc.type);
-    selectTokSeg(acc.tokenLimit);
+    document.getElementById('m-name').value    = acc.name;
+    document.getElementById('m-email').value   = acc.email;
+    document.getElementById('m-task').value    = acc.task||'';
+    document.getElementById('m-pain').value    = acc.pain||'';
+    document.getElementById('m-goal').value    = acc.goal||'';
+    document.getElementById('m-desired').value = acc.desiredHours||'';
+    if(isAdmin) {
+      document.getElementById('m-duration').value = Math.round(acc.duration/3600000);
+      selectSeg(acc.type);
+      selectTokSeg(acc.tokenLimit);
+    } else {
+      // 읽기 전용 표시
+      document.getElementById('modal-ro-type').textContent = acc.type==='premium'?'✦ Premium':'Standard';
+      document.getElementById('modal-ro-dur').textContent  = Math.round(acc.duration/3600000)+'시간';
+      document.getElementById('modal-ro-tok').textContent  = fmtTok(acc.tokenLimit);
+    }
   } else {
-    document.getElementById('m-name').value = '';
-    document.getElementById('m-email').value = '';
-    document.getElementById('m-task').value = '';
+    // 새 계정: 관리자만 추가 가능이므로 isAdmin 보장됨
+    document.getElementById('m-name').value    = '';
+    document.getElementById('m-email').value   = '';
+    document.getElementById('m-task').value    = '';
+    document.getElementById('m-pain').value    = '';
+    document.getElementById('m-goal').value    = '';
+    document.getElementById('m-desired').value = '';
     document.getElementById('m-duration').value = '8';
     selectSeg('standard');
     selectTokSeg(100000);
@@ -678,14 +745,14 @@ function selectTokSeg(limit) {
   document.getElementById('seg-tok-1m').classList.toggle('active',  limit===1000000);
 }
 function submitAccModal() {
-  const name     = document.getElementById('m-name').value.trim();
-  const email    = document.getElementById('m-email').value.trim();
-  const task     = document.getElementById('m-task').value.trim();
-  const duration = parseInt(document.getElementById('m-duration').value)||8;
-  const type     = document.getElementById('m-seg-val').value;
-  const tokLimit = parseInt(document.getElementById('m-tok-val').value)||100000;
-  const editId   = document.getElementById('m-edit-id').value;
-  const errEl    = document.getElementById('modal-err');
+  const name        = document.getElementById('m-name').value.trim();
+  const email       = document.getElementById('m-email').value.trim();
+  const task        = document.getElementById('m-task').value.trim();
+  const pain        = document.getElementById('m-pain').value.trim();
+  const goal        = document.getElementById('m-goal').value.trim();
+  const desiredHours= parseInt(document.getElementById('m-desired').value)||0;
+  const editId      = document.getElementById('m-edit-id').value;
+  const errEl       = document.getElementById('modal-err');
 
   if(!name){errEl.textContent='이름을 입력해주세요';errEl.style.display='block';return;}
   if(!email||!email.includes('@')){errEl.textContent='올바른 이메일을 입력해주세요';errEl.style.display='block';return;}
@@ -693,14 +760,25 @@ function submitAccModal() {
   if(editId) {
     const acc = accounts.find(a=>a.id===parseInt(editId));
     if(acc) {
-      const oldTask=acc.task, oldName=acc.name;
+      const oldName=acc.name;
       acc.name=name; acc.email=email; acc.task=task;
-      acc.duration=duration*3600000; acc.type=type; acc.tokenLimit=tokLimit;
-      addHist('ok',`"${oldName}→${name}" 계정 수정 (과제: ${task})`, '관리자');
+      acc.pain=pain; acc.goal=goal; acc.desiredHours=desiredHours;
+      // 관리자만 수정 가능한 필드
+      if(isAdmin) {
+        const duration = parseInt(document.getElementById('m-duration').value)||8;
+        const type     = document.getElementById('m-seg-val').value;
+        const tokLimit = parseInt(document.getElementById('m-tok-val').value)||100000;
+        acc.duration=duration*3600000; acc.type=type; acc.tokenLimit=tokLimit;
+      }
+      addHist('ok',`"${oldName}→${name}" 계정 수정 (과제: ${task})`, isAdmin?'관리자':name);
     }
   } else {
+    // 신규 추가는 관리자만
+    const duration = parseInt(document.getElementById('m-duration').value)||8;
+    const type     = document.getElementById('m-seg-val').value;
+    const tokLimit = parseInt(document.getElementById('m-tok-val').value)||100000;
     accounts.push({
-      id:nextId++, name, email, type, task,
+      id:nextId++, name, email, type, task, pain, goal, desiredHours,
       startTime:Date.now(), duration:duration*3600000,
       tokenUsed:0, tokenLimit:tokLimit,
       alerted3h:false, alerted1h:false
@@ -811,6 +889,8 @@ function renderManage() {
   let html='';
   accounts.forEach(acc=>{
     const rem=getRem(acc),st=getSt(rem),pct=fmtPct(acc.tokenUsed,acc.tokenLimit),el=Date.now()-acc.startTime;
+    const desiredMs=(acc.desiredHours||0)*3600000;
+    const desiredPct=desiredMs>0?Math.min(100,Math.round(el/desiredMs*100)):0;
     html+=`<div class="ac ${st!=='ok'?st:''}">
       <div class="act">
         <div>
@@ -823,7 +903,9 @@ function renderManage() {
           <span class="bg ${st==='danger'?'bg-danger':st==='warn'?'bg-warn':'bg-ok'}">${st==='danger'?'🔴 긴급':st==='warn'?'🟡 주의':'정상'}</span>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+
+      <!-- 시간 그리드 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr ${acc.desiredHours?'1fr':''};gap:6px;margin-bottom:10px">
         <div style="background:var(--bg2);border-radius:var(--rmd);padding:8px">
           <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">사용시간</div>
           <div style="font-size:13px;font-weight:600">${fmtDur(el)}</div>
@@ -832,14 +914,35 @@ function renderManage() {
           <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">잔여시간</div>
           <div style="font-size:13px;font-weight:600;color:${st==='danger'?'#A32D2D':st==='warn'?'#633806':'inherit'}">${fmtRem(rem)}</div>
         </div>
+        ${acc.desiredHours?`<div style="background:var(--bg2);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:10px;color:var(--tx2);margin-bottom:2px">희망 ${acc.desiredHours}h 대비</div>
+          <div style="font-size:13px;font-weight:600;color:${desiredPct>=100?'#A32D2D':desiredPct>=80?'#633806':'inherit'}">${desiredPct}%</div>
+        </div>`:''}
       </div>
+
+      <!-- 토큰 바 -->
       <div class="pw"><div class="pb ${barCls(pct)}" style="width:${pct}%"></div></div>
-      <div class="mr" style="margin-bottom:10px">
+      <div class="mr" style="margin-bottom:${acc.pain||acc.goal?'10px':'0'}">
         <span class="ml">토큰 ${pct}% · ${fmtTok(acc.tokenUsed)}/${fmtTok(acc.tokenLimit)}</span>
+        ${isAdmin?`<span class="ml">허용 ${Math.round(acc.duration/3600000)}h · ${acc.type==='premium'?'Premium':'Std'}</span>`:''}
       </div>
+
+      <!-- Pain Point & 개선 목표 -->
+      ${acc.pain||acc.goal?`<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        ${acc.pain?`<div style="background:var(--bg2);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:10px;font-weight:600;color:#633806;margin-bottom:3px"><i class="ti ti-alert-circle" style="font-size:10px;margin-right:3px"></i>Pain Point</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.5">${acc.pain}</div>
+        </div>`:''}
+        ${acc.goal?`<div style="background:var(--bg2);border-radius:var(--rmd);padding:8px">
+          <div style="font-size:10px;font-weight:600;color:#27500A;margin-bottom:3px"><i class="ti ti-target" style="font-size:10px;margin-right:3px"></i>개선 목표</div>
+          <div style="font-size:12px;color:var(--tx);line-height:1.5">${acc.goal}</div>
+        </div>`:''}
+      </div>`:''}
+
+      <!-- 버튼 -->
       <div class="btn-row">
-        <button class="btn" onclick="openAccModal(${acc.id})" style="flex:1;font-size:12px"><i class="ti ti-edit" style="font-size:12px"></i> 수정</button>
-        <button class="btn danger-btn" onclick="deleteAccount(${acc.id})" style="flex:1;font-size:12px"><i class="ti ti-trash" style="font-size:12px"></i> 삭제</button>
+        <button class="btn" onclick="openAccModal(${acc.id})" style="flex:1;font-size:12px"><i class="ti ti-edit" style="font-size:12px"></i> ${isAdmin?'전체 수정':'내용 수정'}</button>
+        ${isAdmin?`<button class="btn danger-btn" onclick="deleteAccount(${acc.id})" style="flex:1;font-size:12px"><i class="ti ti-trash" style="font-size:12px"></i> 삭제</button>`:''}
       </div>
     </div>`;
   });
